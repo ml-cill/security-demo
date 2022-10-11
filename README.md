@@ -1,8 +1,6 @@
 # SpringSecurity Demo
 
-> SpringBoot： 2.7.3  
-> SpringSecurity： 2.7.3
-
+> SpringBoot： 2.7.4 
 
 ### debug 探究运行机制
 
