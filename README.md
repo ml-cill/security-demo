@@ -159,7 +159,7 @@ security中默认的用户登录校验是通过 `UserDetailsManager` 的实现 `
       *
       * 现在的写法是 自定义一个 SecurityFilterChain
       * */
-  
+    
       @Bean
       public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
           /*
@@ -174,17 +174,17 @@ security中默认的用户登录校验是通过 `UserDetailsManager` 的实现 `
                   .anyRequest().authenticated();
           return http.build();
       }
-  
+    
       @Autowired
       private AuthenticationConfiguration authenticationConfiguration;
-  
+    
       @Bean
       public AuthenticationManager authenticationConfiguration() throws Exception {
           AuthenticationManager authenticationManager = authenticationConfiguration.getAuthenticationManager();
           return authenticationManager;
       }
     }
-
+    
     ```
   - 登录接口实现详情
     ```java
@@ -237,10 +237,10 @@ security中默认的用户登录校验是通过 `UserDetailsManager` 的实现 `
      */
     @Component
     public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
-
+    
     @Autowired
     RedisCacheUtil redisCacheUtil;
-  
+    
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         // 1. 获取 Token
@@ -250,7 +250,7 @@ security中默认的用户登录校验是通过 `UserDetailsManager` 的实现 `
           filterChain.doFilter(request, response);
           return;
         }
-
+    
         // 2. 解析 Token
         Claims claims;
         try {
@@ -258,19 +258,19 @@ security中默认的用户登录校验是通过 `UserDetailsManager` 的实现 `
         } catch (Exception e) {
             throw new RuntimeException("token 不合法");
         }
- 
+     
         // 3. 获取 userId，并从redis 中获取用户信息
         String userId = claims.getSubject();
         LoginUser loginUser = redisCacheUtil.getCacheObject("user:" + userId);
         if (Objects.isNull(loginUser)) {
             throw new RuntimeException("当前用户未登录");
         }
- 
+     
         // 4. 封装 Authentication 并存入 SecurityContextHolder
         SecurityContextHolder.getContext().setAuthentication(
                 UsernamePasswordAuthenticationToken.authenticated(
                         loginUser, null,null));
- 
+     
         filterChain.doFilter(request, response);
       }
     }
@@ -315,7 +315,7 @@ security中默认的用户登录校验是通过 `UserDetailsManager` 的实现 `
         String password2 = passwordEncoder.encode("admin");
         System.out.println(password1);
         System.out.println(password2);
-
+    
         boolean flag1 = passwordEncoder.matches("admin", password1);
         boolean flag2 = passwordEncoder.matches("admin", password2);
         System.out.println(flag1);
@@ -355,7 +355,7 @@ security中默认的用户登录校验是通过 `UserDetailsManager` 的实现 `
     SecurityContextHolder.getContext().setAuthentication(
             UsernamePasswordAuthenticationToken.authenticated(
                     loginUser, null, loginUser.getAuthorities()));  
-    ```    
+    ```
 - 自定义登录中添加权限内容
 - 通过 `@PreAuthorize("hasAuthority('address')")` 设置接口权限
 
@@ -552,6 +552,26 @@ mybatis-plus.mapper-locations=classpath*:/mapper/**/*.xml
 
 </mapper>
 ```
+
+### 权限设置方法
+
+#### 所有自带的权限设置方法
+
+- 使用 `@PreAuthorize` 注解进行权限校验
+  - hasAuthority
+  - hasAnyAuthority
+  - hasRole
+  - hasAnyRole
+
+关于校验的细节，源码中的内容为:
+
+![权限校验方法](./img/2022-10-16 210123.png)
+
+如上图，`RoleSet` 中的方法其实就是 `UserDetails.getAuthorities` 中的内容，使用这里的内容进行校验，而 `Authority` 和 `Role` 的区别是一个校验权限一个校验角色，但它们使用的校验源数据是一致的，区别在于 Role 校验时会默认添加前缀 `ROLE_`
+
+### 自定义权限校验
+
+### 基于配置的权限校验
 
 ## 关于 JWT
 
