@@ -11,7 +11,10 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import pers.melii.cill.security.demo.filter.JwtAuthenticationTokenFilter;
 import pers.melii.cill.security.demo.handler.AccessDeniedHandlerImpl;
 import pers.melii.cill.security.demo.handler.AuthenticationEntryPointImpl;
@@ -47,6 +50,15 @@ public class SecurityConfig {
     @Autowired
     private AccessDeniedHandlerImpl accessDeniedHandler;
 
+    @Autowired
+    private AuthenticationSuccessHandler successHandler;
+
+    @Autowired
+    private AuthenticationFailureHandler failureHandler;
+
+    @Autowired
+    private LogoutSuccessHandler logoutSuccessHandler;
+
     /*
     * 原本继承 WebSecurityConfigurerAdapter 在2.7 的版本已经不推荐使用了
     *
@@ -70,6 +82,12 @@ public class SecurityConfig {
 
         // 设置 security 如何处理异常
         http.exceptionHandling().authenticationEntryPoint(authenticationEntryPoint).accessDeniedHandler(accessDeniedHandler);
+
+        // 配置认证成功及失败处理器
+        http.formLogin().successHandler(successHandler).failureHandler(failureHandler);
+
+        // 配置登出（注销）成功处理器
+        http.logout().logoutSuccessHandler(logoutSuccessHandler);
         return http.build();
     }
 
