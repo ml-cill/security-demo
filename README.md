@@ -569,9 +569,68 @@ mybatis-plus.mapper-locations=classpath*:/mapper/**/*.xml
 
 如上图，`RoleSet` 中的方法其实就是 `UserDetails.getAuthorities` 中的内容，使用这里的内容进行校验，而 `Authority` 和 `Role` 的区别是一个校验权限一个校验角色，但它们使用的校验源数据是一致的，区别在于 Role 校验时会默认添加前缀 `ROLE_`
 
-### 自定义权限校验
+#### 自定义权限校验
 
-### 基于配置的权限校验
+SpringSecurity 支持自定义校验方法在 `@PreAuthorize` 中使用
+
+```java
+@Component("ex")
+public class LLSExpressionRoot {
+    public boolean hasAuthority(String authority){
+        //获取当前用户的权限
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        List<String> permissions = loginUser.getPermissions();
+        //判断用户权限集合中是否存在authority
+        return permissions.contains(authority);
+    }
+}
+```
+
+```java
+@RequestMapping("/hello")
+@PreAuthorize("@ex.hasAuthority('dev:code:pull')")
+public String hello(){
+    return "hello";
+}
+```
+
+`@PreAuthorize` 是支持 `SPEL` 表达式的， 而 `SPEL` 表达式中可以使用 `@ex` 获取容器中名称为 `ex` 的 `bean` 对象
+
+#### 基于配置的权限校验
+
+SpringSecurity也支持在配置类中使用 `antMatchers` 方法对资源进行权限控制
+
+```java
+@Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                //关闭csrf
+                .csrf().disable()
+                //不通过Session获取SecurityContext
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                .authorizeRequests()
+                // 对于登录接口 允许匿名访问
+                .antMatchers("/user/login").anonymous()
+                .antMatchers("/demo/hello").hasAuthority("admin")
+                // 除上面外的所有请求全部需要鉴权认证
+                .anyRequest().authenticated();
+
+
+        //把jwt 过滤器 放在user过滤器之前
+        http.addFilterBefore(jwtAuthenticationTokenFilter, UsernamePasswordAuthenticationFilter.class);
+        //告诉security如何处理异常
+        http.exceptionHandling().authenticationEntryPoint(authenticationEntryPoint)
+                .accessDeniedHandler(accessDeniedHandler);
+
+        //允许跨域
+        http.cors();
+        return http.build();
+    }
+```
+
+
 
 ## 关于 JWT
 
